@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "image_file.h"
 #include "diskio.h"
@@ -29,8 +30,8 @@ static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
 	return 0;
 }
 
-int main(int argc, char *argv[]) {
-	char *pathname;
+static int cmd_ls(int argc, char *argv[]) {
+	char *image_filename;
 	volume_container vol_container;
 	
 	FATFS fatfs;
@@ -38,21 +39,29 @@ int main(int argc, char *argv[]) {
 	FRESULT result;
 	FILINFO file_info;
 	
-	XCHAR* dirname = "";
+	XCHAR* dirname;
 	
 #if _USE_LFN
 	XCHAR lfname[255];
 #endif
 	
-	if (argc != 2) {
-		printf("Usage: hdfmonkey filename.hdf\n");
-		return 0;
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
 	}
 	
-	pathname = argv[1];
+	image_filename = argv[2];
 	
-	if (open_image(pathname, &vol_container, &fatfs) == -1) {
+	if (open_image(image_filename, &vol_container, &fatfs) == -1) {
 		return -1;
+	}
+	
+	if (argc > 3) {
+		/* explicit path specified */
+		dirname = argv[3];
+	} else {
+		/* no path specified - use root */
+		dirname = "";
 	}
 	
 	if (result = f_opendir(&dir, dirname) != FR_OK) {
@@ -70,6 +79,14 @@ int main(int argc, char *argv[]) {
 			return -1;
 		}
 		if (file_info.fname[0] == '\0') break;
+		
+		/* indicate whether file is a dir or a regular file */
+		if (file_info.fattrib & AM_DIR) {
+			printf("[DIR]\t");
+		} else {
+			printf("%d\t", file_info.fsize);
+		}
+		
 #if _USE_LFN
 		if (file_info.lfname[0]) {
 			printf("%s\n", file_info.lfname);
@@ -83,5 +100,17 @@ int main(int argc, char *argv[]) {
 	
 	vol_container.close(&vol_container);
 
+	return 0;
+}
+
+int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "ls") == 0) {
+		return cmd_ls(argc, argv);
+	} else {
+		printf("Unknown command: '%s'\n", argv[1]);
+	}
+	printf("Type 'hdfmonkey help' for usage.\n");
 	return 0;
 }

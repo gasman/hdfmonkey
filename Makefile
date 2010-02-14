@@ -3,7 +3,8 @@ OBJECTS = \
 	diskio.o \
 	image_file.o \
 	ff.o \
-	clock.o
+	clock.o \
+	ccsbcs.o
 
 hdfmonkey: ${OBJECTS}
 	gcc ${OBJECTS} -o hdfmonkey

@@ -302,13 +302,42 @@ static int cmd_ls(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_format(int argc, char *argv[]) {
+	char *image_filename;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	
+	image_filename = argv[2];
+	
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	result = f_mkfs(0, 0, 0);
+	if (result != FR_OK) {
+		fat_perror("Formatting failed", result);
+		return -1;
+	}
+	
+	return 0;
+}
+
 static int cmd_help(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("hdfmonkey: utility for manipulating HDF disk images\n\n");
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tget\thelp\n\tls\n\tput\n");
+		printf("\tformat\n\tget\thelp\n\tls\n\tput\n");
+	} else if (strcmp(argv[2], "format") == 0) {
+		printf("format: Formats the entire disk image as a FAT filesystem\n");
+		printf("usage: hdfmonkey format <imagefile>\n");
 	} else if (strcmp(argv[2], "get") == 0) {
 		printf("get: Copy a file from the disk image to a local file\n");
 		printf("usage: hdfmonkey get <imagefile> <sourcefile> [destfile]\n");
@@ -332,6 +361,8 @@ static int cmd_help(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "format") == 0) {
+		return cmd_format(argc, argv);
 	} else if (strcmp(argv[1], "get") == 0) {
 		return cmd_get(argc, argv);
 	} else if (strcmp(argv[1], "help") == 0) {

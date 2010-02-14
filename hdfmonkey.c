@@ -6,7 +6,7 @@
 #include "ff.h"
 #include "ffconf.h"
 
-#define READ_BUFFER_SIZE 2048
+#define BUFFER_SIZE 2048
 
 /* Print an error message for an error returned from the FAT driver */
 static void fat_perror(char *custom_message, FRESULT result) {
@@ -100,7 +100,7 @@ static int cmd_get(int argc, char *argv[]) {
 	FIL input_file;
 	FILE *output_stream;
 	
-	char buffer[READ_BUFFER_SIZE];
+	char buffer[BUFFER_SIZE];
 	UINT bytes_read;
 	
 	if (argc >= 3) {
@@ -138,19 +138,93 @@ static int cmd_get(int argc, char *argv[]) {
 	}
 	
 	do {
-		result = f_read(&input_file, buffer, READ_BUFFER_SIZE, &bytes_read);
+		result = f_read(&input_file, buffer, BUFFER_SIZE, &bytes_read);
 		if (result != FR_OK) {
 			fat_perror("Error reading file", result);
 			f_close(&input_file);
 			return -1;
 		}
 		fwrite(buffer, 1, bytes_read, output_stream);
-	} while (bytes_read == READ_BUFFER_SIZE);
+	} while (bytes_read == BUFFER_SIZE);
 	
 	f_close(&input_file);
 	if (output_stream != stdout) {
 		fclose(output_stream);
 	}
+	
+	return 0;
+}
+
+static int cmd_put(int argc, char *argv[]) {
+	char *image_filename;
+	char *source_filename;
+	char *dest_filename;
+	
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	FILE *input_file;
+	FIL output_file;
+	
+	char buffer[BUFFER_SIZE];
+	size_t bytes_read;
+	UINT bytes_written;
+	
+	if (argc >= 3) {
+		image_filename = argv[2];
+	} else {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+
+	if (argc >= 4) {
+		source_filename = argv[3];
+	} else {
+		printf("No source filename supplied\n");
+		return -1;
+	}
+	
+	if (argc >= 5) {
+		dest_filename = argv[4];
+	} else {
+		printf("No destination filename supplied\n");
+		return -1;
+	}
+	
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	input_file = fopen(source_filename, "rb");
+	if (!input_file) {
+		perror("Could not open file for reading");
+		return -1;
+	}
+	
+	result = f_open(&output_file, dest_filename, FA_WRITE | FA_CREATE_ALWAYS);
+	if (result != FR_OK) {
+		fat_perror("Error opening file for writing", result);
+		return -1;
+	}
+	
+	do {
+		bytes_read = fread(buffer, 1, BUFFER_SIZE, input_file);
+		if (ferror(input_file)) {
+			perror("Error reading file");
+			return -1;
+		}
+		if (bytes_read != 0) {
+			result = f_write(&output_file, buffer, bytes_read, &bytes_written);
+			if (result != FR_OK) {
+				fat_perror("Error writing file", result);
+				f_close(&output_file);
+				return -1;
+			}
+		}
+	} while (bytes_read == BUFFER_SIZE);
+	
+	fclose(input_file);
+	f_close(&output_file);
 	
 	return 0;
 }
@@ -234,7 +308,7 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tget\thelp\n\tls\n");
+		printf("\tget\thelp\n\tls\n\tput\n");
 	} else if (strcmp(argv[2], "get") == 0) {
 		printf("get: Copy a file from the disk image to a local file\n");
 		printf("usage: hdfmonkey get <imagefile> <sourcefile> [destfile]\n");
@@ -246,6 +320,9 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("ls: Show a directory listing\n");
 		printf("usage: hdfmonkey ls <imagefile> [path]\n");
 		printf("Will list the root directory if no path is specified.\n");
+	} else if (strcmp(argv[2], "put") == 0) {
+		printf("put: Copy a local file to the disk image\n");
+		printf("usage: hdfmonkey put <imagefile> <sourcefile> <destfile>\n");
 	} else {
 		printf("Unknown command: '%s'\n", argv[2]);
 	}
@@ -261,6 +338,8 @@ int main(int argc, char *argv[]) {
 		return cmd_help(argc, argv);
 	} else if (strcmp(argv[1], "ls") == 0) {
 		return cmd_ls(argc, argv);
+	} else if (strcmp(argv[1], "put") == 0) {
+		return cmd_put(argc, argv);
 	} else {
 		printf("Unknown command: '%s'\n", argv[1]);
 	}

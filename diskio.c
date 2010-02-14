@@ -111,7 +111,7 @@ DRESULT disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
-	switch (ctrl == CTRL_SYNC) {
+	switch (ctrl) {
 		case CTRL_SYNC:
 			/* syncing happens automatically on write */
 			return RES_OK;

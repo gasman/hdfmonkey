@@ -6,6 +6,8 @@
 #include "ff.h"
 #include "ffconf.h"
 
+#define READ_BUFFER_SIZE 2048
+
 /* Print an error message for an error returned from the FAT driver */
 static void fat_perror(char *custom_message, FRESULT result) {
 	char *error_message;
@@ -88,6 +90,50 @@ static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
 	return 0;
 }
 
+static int cmd_cat(int argc, char *argv[]) {
+	char *image_filename;
+	char *filename;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	FIL file;
+	
+	char buffer[READ_BUFFER_SIZE];
+	UINT bytes_read;
+	
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	image_filename = argv[2];
+
+	if (argc < 4) {
+		printf("No source filename supplied\n");
+		return -1;
+	}
+	filename = argv[3];
+	
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	result = f_open(&file, filename, FA_READ | FA_OPEN_EXISTING);
+	if (result != FR_OK) {
+		fat_perror("Error opening file", result);
+		return -1;
+	}
+	
+	do {
+		result = f_read(&file, buffer, READ_BUFFER_SIZE, &bytes_read);
+		if (result != FR_OK) {
+			fat_perror("Error reading file", result);
+			f_close(&file);
+			return -1;
+		}
+		fwrite(buffer, 1, bytes_read, stdout);
+	} while (bytes_read == READ_BUFFER_SIZE);
+}
+
 static int cmd_ls(int argc, char *argv[]) {
 	char *image_filename;
 	volume_container vol_container;
@@ -167,7 +213,10 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\thelp\n\tls\n");
+		printf("\tcat\thelp\n\tls\n");
+	} else if (strcmp(argv[2], "cat") == 0) {
+		printf("cat: Write a file to standard output\n");
+		printf("usage: hdfmonkey cat <imagefile> <file>\n");
 	} else if (strcmp(argv[2], "help") == 0) {
 		printf("help: Describe the usage of this program or its commands.\n");
 		printf("usage: hdfmonkey help [command]\n");
@@ -184,6 +233,8 @@ static int cmd_help(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "cat") == 0) {
+		return cmd_cat(argc, argv);
 	} else if (strcmp(argv[1], "help") == 0) {
 		return cmd_help(argc, argv);
 	} else if (strcmp(argv[1], "ls") == 0) {

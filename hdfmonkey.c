@@ -328,13 +328,45 @@ static int cmd_format(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_mkdir(int argc, char *argv[]) {
+	char *image_filename;
+	char *dir_name;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	image_filename = argv[2];
+	
+	if (argc < 4) {
+		printf("No directory name supplied\n");
+		return -1;
+	}
+	dir_name = argv[3];
+	
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	result = f_mkdir(dir_name);
+	if (result != FR_OK) {
+		fat_perror("Directory creation failed", result);
+		return -1;
+	}
+	
+	return 0;
+}
+
 static int cmd_help(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("hdfmonkey: utility for manipulating HDF disk images\n\n");
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tformat\n\tget\thelp\n\tls\n\tput\n");
+		printf("\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n");
 	} else if (strcmp(argv[2], "format") == 0) {
 		printf("format: Formats the entire disk image as a FAT filesystem\n");
 		printf("usage: hdfmonkey format <imagefile>\n");
@@ -349,6 +381,9 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("ls: Show a directory listing\n");
 		printf("usage: hdfmonkey ls <imagefile> [path]\n");
 		printf("Will list the root directory if no path is specified.\n");
+	} else if (strcmp(argv[2], "mkdir") == 0) {
+		printf("mkdir: Create a directory\n");
+		printf("usage: hdfmonkey mkdir <imagefile> <dirname>\n");
 	} else if (strcmp(argv[2], "put") == 0) {
 		printf("put: Copy a local file to the disk image\n");
 		printf("usage: hdfmonkey put <imagefile> <sourcefile> <destfile>\n");
@@ -369,6 +404,8 @@ int main(int argc, char *argv[]) {
 		return cmd_help(argc, argv);
 	} else if (strcmp(argv[1], "ls") == 0) {
 		return cmd_ls(argc, argv);
+	} else if (strcmp(argv[1], "mkdir") == 0) {
+		return cmd_mkdir(argc, argv);
 	} else if (strcmp(argv[1], "put") == 0) {
 		return cmd_put(argc, argv);
 	} else {

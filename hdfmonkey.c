@@ -103,9 +103,31 @@ static int cmd_ls(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_help(int argc, char *argv[]) {
+	if (argc < 3) {
+		printf("hdfmonkey: utility for manipulating HDF disk images\n\n");
+		printf("usage: hdfmonkey <command> [args]\n\n");
+		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
+		printf("Available commands:\n");
+		printf("\thelp\n\tls\n");
+	} else if (strcmp(argv[2], "help") == 0) {
+		printf("help: Describe the usage of this program or its commands.\n");
+		printf("usage: hdfmonkey help [command]\n");
+	} else if (strcmp(argv[2], "ls") == 0) {
+		printf("ls: Show a directory listing\n");
+		printf("usage: hdfmonkey ls <imagefile> [path]\n");
+		printf("Will list the root directory if no path is specified.\n");
+	} else {
+		printf("Unknown command: '%s'\n", argv[2]);
+	}
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "help") == 0) {
+		return cmd_help(argc, argv);
 	} else if (strcmp(argv[1], "ls") == 0) {
 		return cmd_ls(argc, argv);
 	} else {

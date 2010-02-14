@@ -6,6 +6,64 @@
 #include "ff.h"
 #include "ffconf.h"
 
+/* Print an error message for an error returned from the FAT driver */
+static void fat_perror(char *custom_message, FRESULT result) {
+	char *error_message;
+	switch (result) {
+		case FR_OK:
+			error_message = "No error"; /* Not an error. Obviously. */
+			break;
+		case FR_DISK_ERR:
+			error_message = "Low-level disk error";
+			break;
+		case FR_INT_ERR:
+			error_message = "Internal error";
+			break;
+		case FR_NOT_READY:
+			error_message = "Drive not ready";
+			break;
+		case FR_NO_FILE:
+			error_message = "File not found";
+			break;
+		case FR_NO_PATH:
+			error_message = "Path not found";
+			break;
+		case FR_INVALID_NAME:
+			error_message = "File / directory name is invalid";
+			break;
+		case FR_DENIED:
+			error_message = "Access denied";
+			break;
+		case FR_EXIST:
+			error_message = "File / directory already exists";
+			break;
+		case FR_INVALID_OBJECT:
+			error_message = "Invalid object";
+			break;
+		case FR_WRITE_PROTECTED:
+			error_message = "Drive is write-protected";
+			break;
+		case FR_INVALID_DRIVE:
+			error_message = "Invalid drive number";
+			break;
+		case FR_NOT_ENABLED:
+			error_message = "Work area not initialised";
+			break;
+		case FR_NO_FILESYSTEM:
+			error_message = "No FAT filesystem found";
+			break;
+		case FR_MKFS_ABORTED:
+			error_message = "Disk is unsuitable for formatting";
+			break;
+		case FR_TIMEOUT:
+			error_message = "Timeout";
+			break;
+		default:
+			error_message = "Unknown error code";
+	}
+	printf("%s: %s\n", custom_message, error_message);
+}
+
 /* Open the file at pathname as an HDF or raw disk image, populating the passed
 volume container and opening it as disk 0 for the FAT driver */
 static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
@@ -65,7 +123,7 @@ static int cmd_ls(int argc, char *argv[]) {
 	}
 	
 	if (result = f_opendir(&dir, dirname) != FR_OK) {
-		printf("opendir failed with result %d\n", result);
+		fat_perror("Error opening dir", result);
 		return -1;
 	}
 	
@@ -75,7 +133,7 @@ static int cmd_ls(int argc, char *argv[]) {
 #endif
 	while(1) {
 		if (result = f_readdir(&dir, &file_info) != FR_OK) {
-			printf("readdir failed with result %d\n", result);
+			fat_perror("Error reading dir", result);
 			return -1;
 		}
 		if (file_info.fname[0] == '\0') break;

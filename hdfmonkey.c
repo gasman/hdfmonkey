@@ -90,48 +90,69 @@ static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
 	return 0;
 }
 
-static int cmd_cat(int argc, char *argv[]) {
+static int cmd_get(int argc, char *argv[]) {
 	char *image_filename;
-	char *filename;
+	char *source_filename;
+	
 	volume_container vol;
 	FATFS fatfs;
 	FRESULT result;
-	FIL file;
+	FIL input_file;
+	FILE *output_stream;
 	
 	char buffer[READ_BUFFER_SIZE];
 	UINT bytes_read;
 	
-	if (argc < 3) {
+	if (argc >= 3) {
+		image_filename = argv[2];
+	} else {
 		printf("No image filename supplied\n");
 		return -1;
 	}
-	image_filename = argv[2];
 
-	if (argc < 4) {
+	if (argc >= 4) {
+		source_filename = argv[3];
+	} else {
 		printf("No source filename supplied\n");
 		return -1;
 	}
-	filename = argv[3];
+	
+	if (argc >= 5) {
+		output_stream = fopen(argv[4], "wb");
+		if (!output_stream) {
+			perror("Could not open file for writing");
+			return -1;
+		}
+	} else {
+		output_stream = stdout;
+	}
 	
 	if (open_image(image_filename, &vol, &fatfs) == -1) {
 		return -1;
 	}
 	
-	result = f_open(&file, filename, FA_READ | FA_OPEN_EXISTING);
+	result = f_open(&input_file, source_filename, FA_READ | FA_OPEN_EXISTING);
 	if (result != FR_OK) {
 		fat_perror("Error opening file", result);
 		return -1;
 	}
 	
 	do {
-		result = f_read(&file, buffer, READ_BUFFER_SIZE, &bytes_read);
+		result = f_read(&input_file, buffer, READ_BUFFER_SIZE, &bytes_read);
 		if (result != FR_OK) {
 			fat_perror("Error reading file", result);
-			f_close(&file);
+			f_close(&input_file);
 			return -1;
 		}
-		fwrite(buffer, 1, bytes_read, stdout);
+		fwrite(buffer, 1, bytes_read, output_stream);
 	} while (bytes_read == READ_BUFFER_SIZE);
+	
+	f_close(&input_file);
+	if (output_stream != stdout) {
+		fclose(output_stream);
+	}
+	
+	return 0;
 }
 
 static int cmd_ls(int argc, char *argv[]) {
@@ -213,10 +234,11 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tcat\thelp\n\tls\n");
-	} else if (strcmp(argv[2], "cat") == 0) {
-		printf("cat: Write a file to standard output\n");
-		printf("usage: hdfmonkey cat <imagefile> <file>\n");
+		printf("\tget\thelp\n\tls\n");
+	} else if (strcmp(argv[2], "get") == 0) {
+		printf("get: Copy a file from the disk image to a local file\n");
+		printf("usage: hdfmonkey get <imagefile> <sourcefile> [destfile]\n");
+		printf("Will write the file to standard output if no destination file is specified.\n");
 	} else if (strcmp(argv[2], "help") == 0) {
 		printf("help: Describe the usage of this program or its commands.\n");
 		printf("usage: hdfmonkey help [command]\n");
@@ -233,8 +255,8 @@ static int cmd_help(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
-	} else if (strcmp(argv[1], "cat") == 0) {
-		return cmd_cat(argc, argv);
+	} else if (strcmp(argv[1], "get") == 0) {
+		return cmd_get(argc, argv);
 	} else if (strcmp(argv[1], "help") == 0) {
 		return cmd_help(argc, argv);
 	} else if (strcmp(argv[1], "ls") == 0) {

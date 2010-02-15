@@ -360,13 +360,45 @@ static int cmd_mkdir(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_rm(int argc, char *argv[]) {
+	char *image_filename;
+	char *filename;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	image_filename = argv[2];
+	
+	if (argc < 4) {
+		printf("No filename supplied\n");
+		return -1;
+	}
+	filename = argv[3];
+	
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	result = f_unlink(filename);
+	if (result != FR_OK) {
+		fat_perror("Deletion failed", result);
+		return -1;
+	}
+	
+	return 0;
+}
+
 static int cmd_help(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("hdfmonkey: utility for manipulating HDF disk images\n\n");
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n");
+		printf("\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
 	} else if (strcmp(argv[2], "format") == 0) {
 		printf("format: Formats the entire disk image as a FAT filesystem\n");
 		printf("usage: hdfmonkey format <imagefile>\n");
@@ -387,6 +419,10 @@ static int cmd_help(int argc, char *argv[]) {
 	} else if (strcmp(argv[2], "put") == 0) {
 		printf("put: Copy a local file to the disk image\n");
 		printf("usage: hdfmonkey put <imagefile> <sourcefile> <destfile>\n");
+	} else if (strcmp(argv[2], "rm") == 0) {
+		printf("rm: Remove a file or directory\n");
+		printf("usage: hdfmonkey rm <imagefile> <filename>\n");
+		printf("Directories must be empty before they can be deleted.\n");
 	} else {
 		printf("Unknown command: '%s'\n", argv[2]);
 	}
@@ -408,6 +444,8 @@ int main(int argc, char *argv[]) {
 		return cmd_mkdir(argc, argv);
 	} else if (strcmp(argv[1], "put") == 0) {
 		return cmd_put(argc, argv);
+	} else if (strcmp(argv[1], "rm") == 0) {
+		return cmd_rm(argc, argv);
 	} else {
 		printf("Unknown command: '%s'\n", argv[1]);
 	}

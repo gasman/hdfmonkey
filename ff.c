@@ -2924,7 +2924,11 @@ FRESULT f_mkfs (
 		ST_WORD(tbl+BPB_FATSz16, n_fat);		/* Number of secters per FAT */
 		tbl[BS_DrvNum] = 0x80;					/* Drive number */
 		tbl[BS_BootSig] = 0x29;					/* Extended boot signature */
-		mem_cpy(tbl+BS_VolLab, "NO NAME    FAT     ", 19);	/* Volume lavel, FAT signature */
+		if (fmt == FS_FAT12) {
+			mem_cpy(tbl+BS_VolLab, "NO NAME    FAT12   ", 19);	/* Volume lavel, FAT signature */
+		} else {
+			mem_cpy(tbl+BS_VolLab, "NO NAME    FAT16   ", 19);	/* Volume lavel, FAT signature */
+		}
 	} else {
 		ST_DWORD(tbl+BS_VolID32, n);			/* Volume serial number */
 		ST_DWORD(tbl+BPB_FATSz32, n_fat);		/* Number of secters per FAT */

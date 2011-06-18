@@ -346,6 +346,42 @@ static int cmd_format(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_create(int argc, char *argv[]) {
+	char *image_filename;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+	
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	
+	image_filename = argv[2];
+	
+	if (hdf_image_create(&vol, image_filename, 131072) == -1) {
+		return -1;
+	}
+	
+	disk_map(0, &vol);
+	
+	if (f_mount(0, &fatfs) != FR_OK) {
+		printf("mount failed\n");
+		vol.close(&vol);
+		return -1;
+	}
+	
+	result = f_mkfs(0, 0, 0);
+	if (result != FR_OK) {
+		fat_perror("Formatting failed", result);
+		vol.close(&vol);
+		return -1;
+	}
+	
+	vol.close(&vol);
+	return 0;
+}
+
 static int cmd_mkdir(int argc, char *argv[]) {
 	char *image_filename;
 	char *dir_name;
@@ -450,6 +486,8 @@ static int cmd_help(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "create") == 0) {
+		return cmd_create(argc, argv);
 	} else if (strcmp(argv[1], "format") == 0) {
 		return cmd_format(argc, argv);
 	} else if (strcmp(argv[1], "get") == 0) {

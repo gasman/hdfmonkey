@@ -301,7 +301,7 @@ static int cmd_ls(int argc, char *argv[]) {
 		if (file_info.fattrib & AM_DIR) {
 			printf("[DIR]\t");
 		} else {
-			printf("%d\t", file_info.fsize);
+			printf("%ld\t", file_info.fsize);
 		}
 		
 #if _USE_LFN

@@ -385,7 +385,7 @@ static int cmd_create(int argc, char *argv[]) {
 		converted_size = (unsigned long) (unconverted_size * (1<<20) / 512);
 	} else if (*unit == 'K' || *unit == 'k') {
 		converted_size = (unsigned long) (unconverted_size * (1<<10) / 512);
-	} else if (*unit == 0) {
+	} else if (*unit == 'B' || *unit == 'b' || *unit == 0) {
 		converted_size = (unsigned long) (unconverted_size / 512);
 	} else {
 		printf("Unrecognised size unit specifier: %c\n", *unit);
@@ -491,7 +491,12 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
+		printf("\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
+	} else if (strcmp(argv[2], "create") == 0) {
+		printf("create: Create a new FAT-formatted image file\n");
+		printf("usage: hdfmonkey create <imagefile> <size>\n");
+		printf("Size is given in bytes (B), kilobytes (K), megabytes (M) or gigabytes (G) -\n");
+		printf("e.g. 64M, 1.5G\n");
 	} else if (strcmp(argv[2], "format") == 0) {
 		printf("format: Formats the entire disk image as a FAT filesystem\n");
 		printf("usage: hdfmonkey format <imagefile>\n");

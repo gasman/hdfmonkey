@@ -232,7 +232,7 @@ int hdf_image_create(volume_container *v, char *pathname, unsigned long sector_c
 		perror("open() (RDWR) error");
 		return -1;
 	}
-	if ( ftruncate(fd, sector_count * 512) == -1 ) {
+	if ( ftruncate(fd, sector_count * 512 + HDF_HEADER_SIZE) == -1 ) {
 		perror("ftruncate() error");
 		return -1;
 	}

@@ -26,6 +26,7 @@
 #include "ffconf.h"
 
 #define BUFFER_SIZE 2048
+#define CLONE_BUFFER_SIZE 1048576
 
 /* Print an error message for an error returned from the FAT driver */
 static void fat_perror(char *custom_message, FRESULT result) {
@@ -101,9 +102,11 @@ static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
 	
 	disk_map(0, vol);
 	
-	if (f_mount(0, fatfs) != FR_OK) {
-		printf("mount failed\n");
-		return -1;
+	if (fatfs != NULL) {
+		if (f_mount(0, fatfs) != FR_OK) {
+			printf("mount failed\n");
+			return -1;
+		}
 	}
 	
 	return 0;
@@ -118,6 +121,68 @@ static int filename_is_hdf(char *filename) {
 		&& (filename[len-2] == 'd' || filename[len-2] == 'D')
 		&& (filename[len-1] == 'f' || filename[len-1] == 'F')
 	);
+}
+
+static int cmd_clone(int argc, char *argv[]) {
+	char *source_filename;
+	char *destination_filename;
+	volume_container source_vol, destination_vol;
+	char buffer[CLONE_BUFFER_SIZE];
+	size_t total_size, transfer_size;
+	off_t position;
+	
+	if (argc >= 3) {
+		source_filename = argv[2];
+	} else {
+		printf("No source image filename supplied\n");
+		return -1;
+	}
+	
+	if (argc >= 4) {
+		destination_filename = argv[3];
+	} else {
+		printf("No destination image filename supplied\n");
+		return -1;
+	}
+	
+	if (open_image(source_filename, &source_vol, NULL) == -1) {
+		return -1;
+	}
+	
+	if (filename_is_hdf(destination_filename)) {
+		if (hdf_image_create(&destination_vol, destination_filename, source_vol.sector_count) == -1) {
+			source_vol.close(&source_vol);
+			return -1;
+		}
+	} else {
+		if (raw_image_create(&destination_vol, destination_filename, source_vol.sector_count) == -1) {
+			source_vol.close(&source_vol);
+			return -1;
+		}
+	}
+	
+	position = 0;
+	total_size = source_vol.bytes_per_sector * source_vol.sector_count;
+	
+	while (position < total_size) {
+		transfer_size = total_size - position;
+		if (transfer_size > CLONE_BUFFER_SIZE) transfer_size = CLONE_BUFFER_SIZE;
+		if (source_vol.read(&source_vol, position, buffer, transfer_size) < 0) {
+			source_vol.close(&source_vol);
+			destination_vol.close(&destination_vol);
+			return -1;
+		}
+		if (destination_vol.write(&destination_vol, position, buffer, transfer_size) < 0) {
+			source_vol.close(&source_vol);
+			destination_vol.close(&destination_vol);
+			return -1;
+		}
+		position += transfer_size;
+	}
+	
+	source_vol.close(&source_vol);
+	destination_vol.close(&destination_vol);
+	return 0;
 }
 
 static int cmd_get(int argc, char *argv[]) {
@@ -530,6 +595,8 @@ static int cmd_help(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		/* fall through to help prompt */
+	} else if (strcmp(argv[1], "clone") == 0) {
+		return cmd_clone(argc, argv);
 	} else if (strcmp(argv[1], "create") == 0) {
 		return cmd_create(argc, argv);
 	} else if (strcmp(argv[1], "format") == 0) {

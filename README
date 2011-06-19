@@ -10,7 +10,7 @@ a physical disk as an intermediate step - particularly useful when developing
 software for FAT-supporting systems like ESXDOS and ResiDOS.
 
 Commands provided include:
-create, format, get, ls, mkdir, put, rm
+clone, create, format, get, ls, mkdir, put, rm
 
 These commands are passed as a parameter to hdfmonkey along with any other
 required arguments:

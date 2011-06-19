@@ -556,7 +556,10 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
+		printf("\tclone\n\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
+	} else if (strcmp(argv[2], "clone") == 0) {
+		printf("clone: Make a new image file from a disk or image, possibly in a different container format\n");
+		printf("usage: hdfmonkey clone <oldimagefile> <newimagefile>\n");
 	} else if (strcmp(argv[2], "create") == 0) {
 		printf("create: Create a new FAT-formatted image file\n");
 		printf("usage: hdfmonkey create <imagefile> <size>\n");

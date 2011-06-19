@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "image_file.h"
 #include "diskio.h"
@@ -351,6 +352,9 @@ static int cmd_create(int argc, char *argv[]) {
 	volume_container vol;
 	FATFS fatfs;
 	FRESULT result;
+	double unconverted_size;
+	unsigned long converted_size;
+	char *unit;
 	
 	if (argc < 3) {
 		printf("No image filename supplied\n");
@@ -359,7 +363,25 @@ static int cmd_create(int argc, char *argv[]) {
 	
 	image_filename = argv[2];
 	
-	if (hdf_image_create(&vol, image_filename, 131072) == -1) {
+	if (argc < 4) {
+		printf("No image size specified\n");
+		return -1;
+	}
+	unconverted_size = strtod(argv[3], &unit);
+	if (*unit == 'G' || *unit == 'g') {
+		converted_size = (unsigned long) (unconverted_size * (1<<30) / 512);
+	} else if (*unit == 'M' || *unit == 'm') {
+		converted_size = (unsigned long) (unconverted_size * (1<<20) / 512);
+	} else if (*unit == 'K' || *unit == 'k') {
+		converted_size = (unsigned long) (unconverted_size * (1<<10) / 512);
+	} else if (*unit == 0) {
+		converted_size = (unsigned long) (unconverted_size / 512);
+	} else {
+		printf("Unrecognised size unit specifier: %c\n", *unit);
+		return -1;
+	}
+	
+	if (hdf_image_create(&vol, image_filename, converted_size) == -1) {
 		return -1;
 	}
 	

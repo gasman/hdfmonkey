@@ -109,6 +109,17 @@ static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
 	return 0;
 }
 
+static int filename_is_hdf(char *filename) {
+	size_t len;
+	
+	len = strlen(filename);
+	return (
+		(filename[len-3] == 'h' || filename[len-3] == 'H')
+		&& (filename[len-2] == 'd' || filename[len-2] == 'D')
+		&& (filename[len-1] == 'f' || filename[len-1] == 'F')
+	);
+}
+
 static int cmd_get(int argc, char *argv[]) {
 	char *image_filename;
 	char *source_filename;
@@ -381,8 +392,14 @@ static int cmd_create(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	if (hdf_image_create(&vol, image_filename, converted_size) == -1) {
-		return -1;
+	if (filename_is_hdf(image_filename)) {
+		if (hdf_image_create(&vol, image_filename, converted_size) == -1) {
+			return -1;
+		}
+	} else {
+		if (raw_image_create(&vol, image_filename, converted_size) == -1) {
+			return -1;
+		}
 	}
 	
 	disk_map(0, &vol);

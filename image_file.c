@@ -86,7 +86,9 @@ int raw_image_open(volume_container *v, char *pathname) {
 int raw_image_create(volume_container *v, char *pathname, unsigned long sector_count) {
 	int fd;
 	
-	if ( (fd = open(pathname, O_RDWR | O_CREAT | O_TRUNC | O_SYNC)) == -1 ) {
+	if ( (fd = open(pathname,
+			O_RDWR | O_CREAT | O_TRUNC | O_SYNC,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1 ) {
 		perror("open() (RDWR) error");
 		return -1;
 	}

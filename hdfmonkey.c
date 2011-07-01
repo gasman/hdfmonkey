@@ -358,7 +358,7 @@ static int cmd_ls(int argc, char *argv[]) {
 		dirname = "";
 	}
 	
-	if (result = f_opendir(&dir, dirname) != FR_OK) {
+	if ((result = f_opendir(&dir, dirname)) != FR_OK) {
 		fat_perror("Error opening dir", result);
 		return -1;
 	}
@@ -368,7 +368,7 @@ static int cmd_ls(int argc, char *argv[]) {
 	file_info.lfsize = 255;
 #endif
 	while(1) {
-		if (result = f_readdir(&dir, &file_info) != FR_OK) {
+		if ((result = f_readdir(&dir, &file_info)) != FR_OK) {
 			fat_perror("Error reading dir", result);
 			return -1;
 		}

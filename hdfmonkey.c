@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <libgen.h>
 
 #include "image_file.h"
 #include "diskio.h"
@@ -121,6 +122,39 @@ static int filename_is_hdf(char *filename) {
 		&& (filename[len-2] == 'd' || filename[len-2] == 'D')
 		&& (filename[len-1] == 'f' || filename[len-1] == 'F')
 	);
+}
+
+static int fat_path_is_dir(XCHAR *filename) {
+	/* Test whether the given filename is a directory in the FAT filesystem. */
+	/* Do this the quick-and-dirty way, by f_opendir-ing and checking for errors */
+	DIR dir;
+	FRESULT result;
+	
+	result = f_opendir(&dir, filename);
+	if (result == FR_OK) {
+		return 1;
+	} else if (result == FR_NO_PATH) {
+		return 0;
+	} else {
+		fat_perror("Error opening file", result);
+		return -1;
+	}
+}
+
+static char *concat_filename(char *path, char *filename) {
+	char *out;
+	size_t path_len, filename_len;
+	
+	path_len = strlen(path);
+	filename_len = strlen(filename);
+	
+	out = malloc(path_len + 1 + filename_len);
+	if (!out) return NULL;
+	strcpy(out, path);
+	strcpy(out + path_len, "/");
+	strcpy(out + path_len + 1, filename);
+	
+	return out;
 }
 
 static int cmd_clone(int argc, char *argv[]) {
@@ -250,45 +284,14 @@ static int cmd_get(int argc, char *argv[]) {
 	return 0;
 }
 
-static int cmd_put(int argc, char *argv[]) {
-	char *image_filename;
-	char *source_filename;
-	char *dest_filename;
-	
-	volume_container vol;
-	FATFS fatfs;
-	FRESULT result;
+static int put_file(char *source_filename, char *dest_filename) {
 	FILE *input_file;
 	FIL output_file;
+	FRESULT result;
 	
 	char buffer[BUFFER_SIZE];
 	size_t bytes_read;
 	UINT bytes_written;
-	
-	if (argc >= 3) {
-		image_filename = argv[2];
-	} else {
-		printf("No image filename supplied\n");
-		return -1;
-	}
-
-	if (argc >= 4) {
-		source_filename = argv[3];
-	} else {
-		printf("No source filename supplied\n");
-		return -1;
-	}
-	
-	if (argc >= 5) {
-		dest_filename = argv[4];
-	} else {
-		printf("No destination filename supplied\n");
-		return -1;
-	}
-	
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
-		return -1;
-	}
 	
 	input_file = fopen(source_filename, "rb");
 	if (!input_file) {
@@ -320,8 +323,60 @@ static int cmd_put(int argc, char *argv[]) {
 	
 	fclose(input_file);
 	f_close(&output_file);
+}
+
+static int cmd_put(int argc, char *argv[]) {
+	char *image_filename;
+	char *source_filename;
+	char *dest_path;
+	char *dest_filename;
 	
-	return 0;
+	volume_container vol;
+	FATFS fatfs;
+	int copying_to_dir;
+	int i;
+	
+	if (argc < 4) {
+		printf("Usage: hdfmonkey put <image_file> <source_files> <destination_file_or_dir>\n");
+		return -1;
+	}
+	
+	image_filename = argv[2];
+	if (open_image(image_filename, &vol, &fatfs) == -1) {
+		return -1;
+	}
+	
+	dest_path = argv[argc-1];
+	copying_to_dir = fat_path_is_dir(dest_path);
+	if (copying_to_dir == -1) {
+		return -1;
+	}
+	
+	if (!copying_to_dir) {
+		if (argc > 5) {
+			printf("Destination must be an existing directory when copying multiple files\n");
+			return -1;
+		}
+		
+		source_filename = argv[3];
+		
+		if ( put_file(source_filename, dest_path) == -1 ) {
+			return -1;
+		}
+		
+		return 0;
+	} else {
+		for (i = 3; i < (argc-1); i++) {
+			dest_filename = concat_filename(dest_path, basename(argv[i]));
+			if (!dest_filename) {
+				printf("Out of memory\n");
+				return -1;
+			}
+			put_file(argv[i], dest_filename);
+			free(dest_filename);
+		}
+		return 0;
+	}
 }
 
 static int cmd_ls(int argc, char *argv[]) {

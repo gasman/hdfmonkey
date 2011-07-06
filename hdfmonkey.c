@@ -157,6 +157,13 @@ static char *concat_filename(char *path, char *filename) {
 	return out;
 }
 
+static void strip_trailing_slash(char *path) {
+	if (*path == '\0') return;
+	while (*path != '\0') path++;
+	path--;
+	if (*path == '\\' || *path == '/') *path = '\0';
+}
+
 static int cmd_clone(int argc, char *argv[]) {
 	char *source_filename;
 	char *destination_filename;
@@ -347,6 +354,7 @@ static int cmd_put(int argc, char *argv[]) {
 	}
 	
 	dest_path = argv[argc-1];
+	strip_trailing_slash(dest_path);
 	copying_to_dir = fat_path_is_dir(dest_path);
 	if (copying_to_dir == -1) {
 		return -1;

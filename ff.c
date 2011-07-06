@@ -81,6 +81,8 @@
 
 #define sync fatfs_sync	/* rename function to avoid conflict with 'sync' in unistd.h */
 
+#include <ctype.h> /* for toupper() */
+
 /*--------------------------------------------------------------------------
 
    Module Private Definitions
@@ -204,7 +206,13 @@ int chk_chr (const char* str, int chr) {
 	return *str;
 }
 
-
+/* Copy memory to memory up to and not including any 0 bytes. And uppercase as we go. */
+static
+void str_ncpy (void *dst, const void *src, int cnt) {
+	char *d = (char*)dst;
+	const char *s = (const char *)src;
+	while (*s && cnt--) *d++ = toupper(*s++);
+}
 
 /*-----------------------------------------------------------------------*/
 /* Request/Release grant to access the volume                            */
@@ -2782,7 +2790,8 @@ FRESULT f_forward (
 FRESULT f_mkfs (
 	BYTE drv,			/* Logical drive number */
 	BYTE partition,		/* Partitioning rule 0:FDISK, 1:SFD */
-	WORD allocsize		/* Allocation unit size [bytes] */
+	WORD allocsize,		/* Allocation unit size [bytes] */
+	char *volume_label
 )
 {
 	static const DWORD sstbl[] = { 2048000, 1024000, 512000, 256000, 128000, 64000, 32000, 16000, 8000, 4000,   0 };
@@ -2925,10 +2934,13 @@ FRESULT f_mkfs (
 		tbl[BS_DrvNum] = 0x80;					/* Drive number */
 		tbl[BS_BootSig] = 0x29;					/* Extended boot signature */
 		if (fmt == FS_FAT12) {
-			mem_cpy(tbl+BS_VolLab, "NO NAME    FAT12   ", 19);	/* Volume lavel, FAT signature */
+			mem_cpy(tbl+BS_VolLab, "           FAT12   ", 19);	/* Volume lavel, FAT signature */
 		} else {
-			mem_cpy(tbl+BS_VolLab, "NO NAME    FAT16   ", 19);	/* Volume lavel, FAT signature */
+			mem_cpy(tbl+BS_VolLab, "           FAT16   ", 19);	/* Volume lavel, FAT signature */
 		}
+		if (volume_label == NULL) volume_label = "NO NAME";
+		str_ncpy(tbl+BS_VolLab, volume_label, 11);
+		
 	} else {
 		ST_DWORD(tbl+BS_VolID32, n);			/* Volume serial number */
 		ST_DWORD(tbl+BPB_FATSz32, n_fat);		/* Number of secters per FAT */
@@ -2937,7 +2949,9 @@ FRESULT f_mkfs (
 		ST_WORD(tbl+BPB_BkBootSec, 6);			/* Backup boot record offset (bs+6) */
 		tbl[BS_DrvNum32] = 0x80;				/* Drive number */
 		tbl[BS_BootSig32] = 0x29;				/* Extended boot signature */
-		mem_cpy(tbl+BS_VolLab32, "NO NAME    FAT32   ", 19);	/* Volume lavel, FAT signature */
+		mem_cpy(tbl+BS_VolLab32, "           FAT32   ", 19);	/* Volume lavel, FAT signature */
+		if (volume_label == NULL) volume_label = "NO NAME";
+		str_ncpy(tbl+BS_VolLab32, volume_label, 11);
 	}
 	ST_WORD(tbl+BS_55AA, 0xAA55);				/* Signature */
 	if (SS(fs) > 512U) {

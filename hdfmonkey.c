@@ -528,7 +528,7 @@ static int cmd_format(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	result = f_mkfs(0, 0, 0);
+	result = f_mkfs(0, 0, 0, (argc < 4 ? NULL : argv[3]));
 	if (result != FR_OK) {
 		fat_perror("Formatting failed", result);
 		return -1;
@@ -589,7 +589,7 @@ static int cmd_create(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	result = f_mkfs(0, 0, 0);
+	result = f_mkfs(0, 0, 0, (argc < 5 ? NULL : argv[4]) );
 	if (result != FR_OK) {
 		fat_perror("Formatting failed", result);
 		vol.close(&vol);
@@ -676,12 +676,12 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey clone <oldimagefile> <newimagefile>\n");
 	} else if (strcmp(argv[2], "create") == 0) {
 		printf("create: Create a new FAT-formatted image file\n");
-		printf("usage: hdfmonkey create <imagefile> <size>\n");
+		printf("usage: hdfmonkey create <imagefile> <size> [volumelabel]\n");
 		printf("Size is given in bytes (B), kilobytes (K), megabytes (M) or gigabytes (G) -\n");
 		printf("e.g. 64M, 1.5G\n");
 	} else if (strcmp(argv[2], "format") == 0) {
 		printf("format: Formats the entire disk image as a FAT filesystem\n");
-		printf("usage: hdfmonkey format <imagefile>\n");
+		printf("usage: hdfmonkey format <imagefile> [volumelabel]\n");
 	} else if (strcmp(argv[2], "get") == 0) {
 		printf("get: Copy a file from the disk image to a local file\n");
 		printf("usage: hdfmonkey get <imagefile> <sourcefile> [destfile]\n");

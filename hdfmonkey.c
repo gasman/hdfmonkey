@@ -16,14 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define DIR FATDIR
+#include "ff.h"
+#undef DIR
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 #include "image_file.h"
 #include "diskio.h"
-#include "ff.h"
+
 #include "ffconf.h"
 
 #define BUFFER_SIZE 2048
@@ -127,7 +134,7 @@ static int filename_is_hdf(char *filename) {
 static int fat_path_is_dir(XCHAR *filename) {
 	/* Test whether the given filename is a directory in the FAT filesystem. */
 	/* Do this the quick-and-dirty way, by f_opendir-ing and checking for errors */
-	DIR dir;
+	FATDIR dir;
 	FRESULT result;
 	
 	result = f_opendir(&dir, filename);
@@ -148,11 +155,12 @@ static char *concat_filename(char *path, char *filename) {
 	path_len = strlen(path);
 	filename_len = strlen(filename);
 	
-	out = malloc(path_len + 1 + filename_len);
+	out = malloc(path_len + 1 + filename_len + 1);
 	if (!out) return NULL;
 	strcpy(out, path);
 	strcpy(out + path_len, "/");
 	strcpy(out + path_len + 1, filename);
+	strcpy(out + path_len + 1 + filename_len, "\0");
 	
 	return out;
 }
@@ -162,6 +170,16 @@ static void strip_trailing_slash(char *path) {
 	while (*path != '\0') path++;
 	path--;
 	if (*path == '\\' || *path == '/') *path = '\0';
+}
+
+static int is_directory(char *path) {
+	int result;
+	struct stat fileinfo;
+	
+	if (stat(path, &fileinfo) != 0) {
+		return 0;
+	}
+	return (fileinfo.st_mode & S_IFDIR);
 }
 
 static int cmd_clone(int argc, char *argv[]) {
@@ -300,36 +318,69 @@ static int put_file(char *source_filename, char *dest_filename) {
 	size_t bytes_read;
 	UINT bytes_written;
 	
-	input_file = fopen(source_filename, "rb");
-	if (!input_file) {
-		perror("Could not open file for reading");
-		return -1;
-	}
+	DIR *dir;
+	struct dirent *dir_entry;
 	
-	result = f_open(&output_file, dest_filename, FA_WRITE | FA_CREATE_ALWAYS);
-	if (result != FR_OK) {
-		fat_perror("Error opening file for writing", result);
-		return -1;
-	}
+	char *source_child_filename;
+	char *dest_child_filename;
 	
-	do {
-		bytes_read = fread(buffer, 1, BUFFER_SIZE, input_file);
-		if (ferror(input_file)) {
-			perror("Error reading file");
-			return -1;
-		}
-		if (bytes_read != 0) {
-			result = f_write(&output_file, buffer, bytes_read, &bytes_written);
+	if (is_directory(source_filename)) {
+		if (!fat_path_is_dir(dest_filename)) {
+			result = f_mkdir(dest_filename);
 			if (result != FR_OK) {
-				fat_perror("Error writing file", result);
-				f_close(&output_file);
+				fat_perror("Directory creation failed", result);
 				return -1;
 			}
 		}
-	} while (bytes_read == BUFFER_SIZE);
-	
-	fclose(input_file);
-	f_close(&output_file);
+		dir = opendir(source_filename);
+		if (!dir) {
+			perror("Error opening directory");
+			return -1;
+		}
+		
+		while (dir_entry = readdir(dir)) {
+			if ( strcmp(dir_entry->d_name, ".") != 0 && strcmp(dir_entry->d_name, "..") != 0 ) {
+				source_child_filename = concat_filename(source_filename, dir_entry->d_name);
+				dest_child_filename = concat_filename(dest_filename, dir_entry->d_name);
+				put_file(source_child_filename, dest_child_filename);
+				free(source_child_filename);
+				free(dest_child_filename);
+			}
+		}
+		
+		closedir(dir);
+	} else {
+		input_file = fopen(source_filename, "rb");
+		if (!input_file) {
+			perror("Could not open file for reading");
+			return -1;
+		}
+		
+		result = f_open(&output_file, dest_filename, FA_WRITE | FA_CREATE_ALWAYS);
+		if (result != FR_OK) {
+			fat_perror("Error opening file for writing", result);
+			return -1;
+		}
+		
+		do {
+			bytes_read = fread(buffer, 1, BUFFER_SIZE, input_file);
+			if (ferror(input_file)) {
+				perror("Error reading file");
+				return -1;
+			}
+			if (bytes_read != 0) {
+				result = f_write(&output_file, buffer, bytes_read, &bytes_written);
+				if (result != FR_OK) {
+					fat_perror("Error writing file", result);
+					f_close(&output_file);
+					return -1;
+				}
+			}
+		} while (bytes_read == BUFFER_SIZE);
+		
+		fclose(input_file);
+		f_close(&output_file);
+	}
 }
 
 static int cmd_put(int argc, char *argv[]) {
@@ -392,7 +443,7 @@ static int cmd_ls(int argc, char *argv[]) {
 	volume_container vol_container;
 	
 	FATFS fatfs;
-	DIR dir;
+	FATDIR dir;
 	FRESULT result;
 	FILINFO file_info;
 	

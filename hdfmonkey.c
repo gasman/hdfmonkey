@@ -697,8 +697,8 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("mkdir: Create a directory\n");
 		printf("usage: hdfmonkey mkdir <imagefile> <dirname>\n");
 	} else if (strcmp(argv[2], "put") == 0) {
-		printf("put: Copy a local file to the disk image\n");
-		printf("usage: hdfmonkey put <imagefile> <sourcefile> <destfile>\n");
+		printf("put: Copy local files to the disk image\n");
+		printf("usage: hdfmonkey put <image-file> <source-files> <dest-file-or-dir>\n");
 	} else if (strcmp(argv[2], "rm") == 0) {
 		printf("rm: Remove a file or directory\n");
 		printf("usage: hdfmonkey rm <imagefile> <filename>\n");

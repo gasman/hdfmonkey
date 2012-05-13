@@ -59,13 +59,20 @@ static int image_file_close(volume_container *v) {
 	return 0;
 }
 
-int raw_image_open(volume_container *v, char *pathname) {
+int raw_image_open(volume_container *v, char *pathname, int writeable) {
 	int fd;
 	struct stat file_stat;
 
-	if ( (fd = open(pathname, O_RDWR | O_SYNC)) == -1 ) {
-		perror("open() (RDWR) error");
-		return -1;
+	if (writeable) {
+		if ( (fd = open(pathname, O_RDWR | O_SYNC)) == -1 ) {
+			perror("open() (RDWR) error");
+			return -1;
+		}
+	} else {
+		if ( (fd = open(pathname, O_RDONLY)) == -1 ) {
+			perror("open() (RDONLY) error");
+			return -1;
+		}
 	}
 	
 	if ( fstat(fd, &file_stat) == -1 ) {
@@ -110,14 +117,21 @@ int raw_image_create(volume_container *v, char *pathname, unsigned long sector_c
 static char *hdf_signature = "RS-IDE\x1a";
 #define HDF_SIGNATURE_LENGTH 7
 
-int hdf_image_open(volume_container *v, char *pathname) {
+int hdf_image_open(volume_container *v, char *pathname, int writeable) {
 	int fd;
 	struct stat file_stat;
 	unsigned char hdf_header[11];
 
-	if ( (fd = open(pathname, O_RDWR | O_SYNC)) == -1 ) {
-		perror("open() (RDWR) error");
-		return -1;
+	if (writeable) {
+		if ( (fd = open(pathname, O_RDWR | O_SYNC)) == -1 ) {
+			perror("open() (RDWR) error");
+			return -1;
+		}
+	} else {
+		if ( (fd = open(pathname, O_RDONLY)) == -1 ) {
+			perror("open() (RDONLY) error");
+			return -1;
+		}
 	}
 
 	if ( fstat(fd, &file_stat) == -1 ) {

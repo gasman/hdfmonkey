@@ -96,15 +96,15 @@ static void fat_perror(char *custom_message, FRESULT result) {
 
 /* Open the file at pathname as an HDF or raw disk image, populating the passed
 volume container and opening it as disk 0 for the FAT driver */
-static int open_image(char *pathname, volume_container *vol, FATFS *fatfs) {
+static int open_image(char *pathname, volume_container *vol, FATFS *fatfs, int writeable) {
 	int res;
 	
 	if (image_file_is_hdf(pathname)) {
 		/* HDF image file found */;
-		res = hdf_image_open(vol, pathname);
+		res = hdf_image_open(vol, pathname, writeable);
 	} else {
 		/* Raw image file found */
-		res = raw_image_open(vol, pathname);
+		res = raw_image_open(vol, pathname, writeable);
 	}
 	if (res) return -1;
 	
@@ -204,7 +204,7 @@ static int cmd_clone(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	if (open_image(source_filename, &source_vol, NULL) == -1) {
+	if (open_image(source_filename, &source_vol, NULL, 0) == -1) {
 		return -1;
 	}
 	
@@ -281,7 +281,7 @@ static int cmd_get(int argc, char *argv[]) {
 		output_stream = stdout;
 	}
 	
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
+	if (open_image(image_filename, &vol, &fatfs, 0) == -1) {
 		return -1;
 	}
 	
@@ -400,7 +400,7 @@ static int cmd_put(int argc, char *argv[]) {
 	}
 	
 	image_filename = argv[2];
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
+	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
 		return -1;
 	}
 	
@@ -460,7 +460,7 @@ static int cmd_ls(int argc, char *argv[]) {
 	
 	image_filename = argv[2];
 	
-	if (open_image(image_filename, &vol_container, &fatfs) == -1) {
+	if (open_image(image_filename, &vol_container, &fatfs, 0) == -1) {
 		return -1;
 	}
 	
@@ -524,7 +524,7 @@ static int cmd_format(int argc, char *argv[]) {
 	
 	image_filename = argv[2];
 	
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
+	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
 		return -1;
 	}
 	
@@ -619,7 +619,7 @@ static int cmd_mkdir(int argc, char *argv[]) {
 	}
 	dir_name = argv[3];
 	
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
+	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
 		return -1;
 	}
 	
@@ -651,7 +651,7 @@ static int cmd_rm(int argc, char *argv[]) {
 	}
 	filename = argv[3];
 	
-	if (open_image(image_filename, &vol, &fatfs) == -1) {
+	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
 		return -1;
 	}
 	

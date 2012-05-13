@@ -664,13 +664,184 @@ static int cmd_rm(int argc, char *argv[]) {
 	return 0;
 }
 
+/* Recursively copy directory contents file-by-file from one filesystem to another.
+The destination directory must exist. */
+static int copy_dir(XCHAR *source_dirname, XCHAR *destination_dirname) {
+	FIL source_file, destination_file;
+	FRESULT result;
+	char buffer[BUFFER_SIZE];
+	UINT bytes_read, bytes_written;
+	FATDIR source_dir;
+	FILINFO file_info;
+	XCHAR *source_filename, *destination_filename;
+#if _USE_LFN
+	XCHAR lfname[255];
+#endif
+
+	result = f_opendir(&source_dir, source_dirname);
+	if (result != FR_OK) {
+		fat_perror("Error opening source directory", result);
+		return -1;
+	}
+
+#if _USE_LFN
+	file_info.lfname = lfname;
+	file_info.lfsize = 255;
+#endif
+	while(1) {
+		if ((result = f_readdir(&source_dir, &file_info)) != FR_OK) {
+			fat_perror("Error reading dir", result);
+			return -1;
+		}
+		if (file_info.fname[0] == '\0') break;
+		
+#if _USE_LFN
+		if (file_info.lfname[0]) {
+			source_filename = concat_filename(source_dirname, file_info.lfname);
+			destination_filename = concat_filename(destination_dirname, file_info.lfname);
+		} else {
+			source_filename = concat_filename(source_dirname, file_info.fname);
+			destination_filename = concat_filename(destination_dirname, file_info.fname);
+		}
+#else
+		source_filename = concat_filename(source_dirname, file_info.lfname);
+		destination_filename = concat_filename(destination_dirname, file_info.lfname);
+#endif
+
+		if (file_info.fattrib & AM_DIR) {
+			/* File is a directory - copy recursively */
+			result = f_mkdir(destination_filename);
+			if (result != FR_OK) {
+				fat_perror("Error creating directory", result);
+				free(source_filename);
+				free(destination_filename);
+				return -1;
+			}
+			if (copy_dir(source_filename, destination_filename) != 0) {
+				free(source_filename);
+				free(destination_filename);
+				return -1;
+			}
+		} else {
+			/* File is a regular file */
+			result = f_open(&source_file, source_filename, FA_READ);
+			if (result != FR_OK) {
+				printf("error on file %s\n", source_filename);
+				fat_perror("Error opening source file", result);
+				free(source_filename);
+				free(destination_filename);
+				return -1;
+			}
+
+			result = f_open(&destination_file, destination_filename, FA_WRITE | FA_CREATE_ALWAYS);
+			if (result != FR_OK) {
+				fat_perror("Error opening destination file", result);
+				free(source_filename);
+				free(destination_filename);
+				f_close(&source_file);
+				return -1;
+			}
+
+			do {
+				result = f_read(&source_file, buffer, BUFFER_SIZE, &bytes_read);
+				if (result != FR_OK) {
+					fat_perror("Error reading file", result);
+					f_close(&source_file);
+					f_close(&destination_file);
+					free(source_filename);
+					free(destination_filename);
+					return -1;
+				}
+				result = f_write(&destination_file, buffer, bytes_read, &bytes_written);
+				if (result != FR_OK) {
+					fat_perror("Error writing file", result);
+					f_close(&source_file);
+					f_close(&destination_file);
+					free(source_filename);
+					free(destination_filename);
+					return -1;
+				}
+			} while (bytes_read == BUFFER_SIZE);
+
+			f_close(&source_file);
+			f_close(&destination_file);
+		}
+
+		free(source_filename);
+		free(destination_filename);
+	}
+
+	return 0;
+}
+
+static int cmd_rebuild(int argc, char *argv[]) {
+	char *source_filename;
+	char *destination_filename;
+	volume_container source_vol, destination_vol;
+	FATFS source_fatfs, destination_fatfs;
+	FRESULT result;
+	
+	if (argc >= 3) {
+		source_filename = argv[2];
+	} else {
+		printf("No source image filename supplied\n");
+		return -1;
+	}
+	
+	if (argc >= 4) {
+		destination_filename = argv[3];
+	} else {
+		printf("No destination image filename supplied\n");
+		return -1;
+	}
+	
+	if (open_image(source_filename, &source_vol, &source_fatfs, 0) == -1) {
+		return -1;
+	}
+	
+	if (filename_is_hdf(destination_filename)) {
+		if (hdf_image_create(&destination_vol, destination_filename, source_vol.sector_count) == -1) {
+			source_vol.close(&source_vol);
+			return -1;
+		}
+	} else {
+		if (raw_image_create(&destination_vol, destination_filename, source_vol.sector_count) == -1) {
+			source_vol.close(&source_vol);
+			return -1;
+		}
+	}
+	
+	disk_map(1, &destination_vol);
+	
+	if (f_mount(1, &destination_fatfs) != FR_OK) {
+		printf("mount failed\n");
+		source_vol.close(&source_vol);
+		destination_vol.close(&destination_vol);
+		return -1;
+	}
+	
+	result = f_mkfs(1, 0, 0, (argc < 5 ? NULL : argv[4]) );
+	if (result != FR_OK) {
+		fat_perror("Formatting failed", result);
+		source_vol.close(&source_vol);
+		destination_vol.close(&destination_vol);
+		return -1;
+	}
+
+	copy_dir("0:", "1:");
+
+	source_vol.close(&source_vol);
+	destination_vol.close(&destination_vol);
+	return 0;
+}
+
 static int cmd_help(int argc, char *argv[]) {
 	if (argc < 3) {
 		printf("hdfmonkey: utility for manipulating HDF disk images\n\n");
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tclone\n\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trm\n");
+		printf("\tclone\n\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trebuild\n\trm\n");
 	} else if (strcmp(argv[2], "clone") == 0) {
 		printf("clone: Make a new image file from a disk or image, possibly in a different container format\n");
 		printf("usage: hdfmonkey clone <oldimagefile> <newimagefile>\n");
@@ -699,6 +870,9 @@ static int cmd_help(int argc, char *argv[]) {
 	} else if (strcmp(argv[2], "put") == 0) {
 		printf("put: Copy local files to the disk image\n");
 		printf("usage: hdfmonkey put <image-file> <source-files> <dest-file-or-dir>\n");
+	} else if (strcmp(argv[2], "rebuild") == 0) {
+		printf("rebuild: Copy contents of the source image file-by-file to a new disk image;\n\tensures that the resulting image is unfragmented.\n");
+		printf("usage: hdfmonkey rebuild <source-image-file> <destination-image-file>\n");
 	} else if (strcmp(argv[2], "rm") == 0) {
 		printf("rm: Remove a file or directory\n");
 		printf("usage: hdfmonkey rm <imagefile> <filename>\n");
@@ -728,6 +902,8 @@ int main(int argc, char *argv[]) {
 		return cmd_mkdir(argc, argv);
 	} else if (strcmp(argv[1], "put") == 0) {
 		return cmd_put(argc, argv);
+	} else if (strcmp(argv[1], "rebuild") == 0) {
+		return cmd_rebuild(argc, argv);
 	} else if (strcmp(argv[1], "rm") == 0) {
 		return cmd_rm(argc, argv);
 	} else {

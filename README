@@ -19,6 +19,28 @@ required arguments:
 
 For further information on command formats, type 'hdfmonkey help'.
 
+INSTALLING
+----------
+From a tarball (see ftp://ftp.untergrund.net/users/gasman/zx/hdfmonkey):
+
+    tar xzf hdfmonkey-0.3.tar.gz
+    cd hdfmonkey-0.3
+    ./configure
+    make
+    sudo make install
+
+From git:
+
+    git clone https://github.com/gasman/hdfmonkey.git
+    cd hdfmonkey
+    autoheader
+    aclocal
+    autoconf
+    automake -a
+    ./configure
+    make
+    sudo make install
+
 TODO
 ----
 Implement a FUSE / MacFUSE filesystem driver, so that the disk image can be

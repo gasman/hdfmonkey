@@ -15,7 +15,6 @@ install-sh
 missing
 src/.deps/
 src/Makefile
-src/Makefile.am
 src/Makefile.in
 stamp-h1
 src/hdfmonkey

@@ -13,7 +13,7 @@ static ssize_t image_file_read(volume_container *v, off_t position, void *buf, s
 	int done = 0;
 	int res;
 	
-	if (res = lseek(fd, position + v->data.file.data_offset, SEEK_SET) < 0) {
+	if ((res = lseek(fd, position + v->data.file.data_offset, SEEK_SET)) < 0) {
 		return res;
 	}
 
@@ -36,7 +36,7 @@ static ssize_t image_file_write(volume_container *v, off_t position, void *buf, 
 	int done = 0;
 	int res;
 	
-	if (res = lseek(fd, position + v->data.file.data_offset, SEEK_SET) < 0) {
+	if ((res = lseek(fd, position + v->data.file.data_offset, SEEK_SET)) < 0) {
 		return res;
 	}
 

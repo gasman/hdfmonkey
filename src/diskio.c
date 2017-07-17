@@ -19,9 +19,6 @@ int disk_map(BYTE drive_number, volume_container *vol)
 
 DSTATUS disk_initialize (BYTE drv)
 {
-	DSTATUS stat;
-	int result;
-
 	return 0; /* status = success */
 }
 
@@ -34,9 +31,6 @@ DSTATUS disk_status (
 	BYTE drv		/* Physical drive nmuber (0..) */
 )
 {
-	DSTATUS stat;
-	int result;
-
 	return 0; /* status = success */
 }
 

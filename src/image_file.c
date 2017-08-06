@@ -8,6 +8,10 @@
 #include "volume_container.h"
 #include "image_file.h"
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 static ssize_t image_file_read(volume_container *v, off_t position, void *buf, size_t count) {
 	int fd = v->data.file.fd;
 	int done = 0;
@@ -64,12 +68,12 @@ int raw_image_open(volume_container *v, char *pathname, int writeable) {
 	struct stat file_stat;
 
 	if (writeable) {
-		if ( (fd = open(pathname, O_RDWR)) == -1 ) {
+		if ( (fd = open(pathname, O_RDWR | O_BINARY)) == -1 ) {
 			perror("open() (RDWR) error");
 			return -1;
 		}
 	} else {
-		if ( (fd = open(pathname, O_RDONLY)) == -1 ) {
+		if ( (fd = open(pathname, O_RDONLY | O_BINARY)) == -1 ) {
 			perror("open() (RDONLY) error");
 			return -1;
 		}
@@ -94,7 +98,7 @@ int raw_image_create(volume_container *v, char *pathname, unsigned long sector_c
 	int fd;
 	
 	if ( (fd = open(pathname,
-			O_RDWR | O_CREAT | O_TRUNC,
+			O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1 ) {
 		perror("open() (RDWR) error");
 		return -1;
@@ -123,12 +127,12 @@ int hdf_image_open(volume_container *v, char *pathname, int writeable) {
 	unsigned char hdf_header[11];
 
 	if (writeable) {
-		if ( (fd = open(pathname, O_RDWR)) == -1 ) {
+		if ( (fd = open(pathname, O_RDWR | O_BINARY)) == -1 ) {
 			perror("open() (RDWR) error");
 			return -1;
 		}
 	} else {
-		if ( (fd = open(pathname, O_RDONLY)) == -1 ) {
+		if ( (fd = open(pathname, O_RDONLY | O_BINARY)) == -1 ) {
 			perror("open() (RDONLY) error");
 			return -1;
 		}
@@ -243,7 +247,7 @@ int hdf_image_create(volume_container *v, char *pathname, unsigned long sector_c
 	int fd;
 	
 	if ( (fd = open(pathname,
-			O_RDWR | O_CREAT | O_TRUNC,
+			O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1 ) {
 		perror("open() (RDWR) error");
 		return -1;
@@ -271,7 +275,7 @@ int image_file_is_hdf(char *pathname) {
 	int fd;
 	char actual_signature[HDF_SIGNATURE_LENGTH];
 	
-	if ( (fd = open(pathname, O_RDONLY)) == -1 ) {
+	if ( (fd = open(pathname, O_RDONLY | O_BINARY)) == -1 ) {
 		perror("open() (RDONLY) error");
 		return 0;
 	}

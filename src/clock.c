@@ -1,3 +1,4 @@
+#include <config.h>
 #include <time.h>
 #include "integer.h"
 
@@ -8,8 +9,13 @@ DWORD get_fattime()
 	struct tm t;
 	
 	epoch_time = time(NULL);
+
+#ifdef COMPAT_WIN32
+	gmtime_s(&t, &epoch_time);
+#else
 	gmtime_r(&epoch_time, &t);
-	
+#endif
+
 	return (
 		(((t.tm_year + 1900 - 1980) & 0x7f) << 25)
 		| ((t.tm_mon + 1) << 21)

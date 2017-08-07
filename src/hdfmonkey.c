@@ -173,7 +173,6 @@ static void strip_trailing_slash(char *path) {
 }
 
 static int is_directory(char *path) {
-	int result;
 	struct stat fileinfo;
 	
 	if (stat(path, &fileinfo) != 0) {
@@ -338,7 +337,7 @@ static int put_file(char *source_filename, char *dest_filename) {
 			return -1;
 		}
 		
-		while (dir_entry = readdir(dir)) {
+		while ((dir_entry = readdir(dir))) {
 			if ( strcmp(dir_entry->d_name, ".") != 0 && strcmp(dir_entry->d_name, "..") != 0 ) {
 				source_child_filename = concat_filename(source_filename, dir_entry->d_name);
 				dest_child_filename = concat_filename(dest_filename, dir_entry->d_name);
@@ -381,6 +380,8 @@ static int put_file(char *source_filename, char *dest_filename) {
 		fclose(input_file);
 		f_close(&output_file);
 	}
+
+	return 0;
 }
 
 static int cmd_put(int argc, char *argv[]) {

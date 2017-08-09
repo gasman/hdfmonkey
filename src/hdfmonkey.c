@@ -514,22 +514,47 @@ static int cmd_ls(int argc, char *argv[]) {
 
 static int cmd_format(int argc, char *argv[]) {
 	char *image_filename;
+	char *volumelabel = NULL;
 	volume_container vol;
 	FATFS fatfs;
 	FRESULT result;
+	BYTE fmt = 0;
+	int i;
 	
-	if (argc < 3) {
-		printf("No image filename supplied\n");
+	int arg_num = 0;
+	for (i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "--fat12") == 0) {
+			fmt = FS_FAT12;
+		} else if (strcmp(argv[i], "--fat16") == 0) {
+			fmt = FS_FAT16;
+		} else if (strcmp(argv[i], "--fat32") == 0) {
+			fmt = FS_FAT32;
+		} else {
+			switch (arg_num) {
+				case 0:
+					image_filename = argv[i];
+					arg_num++;
+					break;
+				case 1:
+					volumelabel = argv[i];
+					arg_num++;
+					break;
+				default:
+					arg_num++;
+			}
+		}
+	}
+
+	if (arg_num < 1 || arg_num > 2) {
+		printf("Usage: hdfmonkey format [--fat12|--fat16|--fat32] <imagefile> [volumelabel]\n");
 		return -1;
 	}
-	
-	image_filename = argv[2];
 	
 	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
 		return -1;
 	}
 	
-	result = f_mkfs(0, 0, 0, (argc < 4 ? NULL : argv[3]));
+	result = f_mkfs(0, 0, 0, volumelabel, fmt);
 	if (result != FR_OK) {
 		fat_perror("Formatting failed", result);
 		return -1;
@@ -546,19 +571,43 @@ static int cmd_create(int argc, char *argv[]) {
 	double unconverted_size;
 	unsigned long converted_size;
 	char *unit;
-	
-	if (argc < 3) {
-		printf("No image filename supplied\n");
+	char *volumelabel = NULL;
+	BYTE fmt = 0;
+	int i;
+
+	int arg_num = 0;
+	for (i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "--fat12") == 0) {
+			fmt = FS_FAT12;
+		} else if (strcmp(argv[i], "--fat16") == 0) {
+			fmt = FS_FAT16;
+		} else if (strcmp(argv[i], "--fat32") == 0) {
+			fmt = FS_FAT32;
+		} else {
+			switch (arg_num) {
+				case 0:
+					image_filename = argv[i];
+					arg_num++;
+					break;
+				case 1:
+					unconverted_size = strtod(argv[i], &unit);
+					arg_num++;
+					break;
+				case 2:
+					volumelabel = argv[i];
+					arg_num++;
+					break;
+				default:
+					arg_num++;
+			}
+		}
+	}
+
+	if (arg_num < 2 || arg_num > 3) {
+		printf("Usage: hdfmonkey create [--fat12|--fat16|--fat32] <imagefile> <size> [volumelabel]\n");
 		return -1;
 	}
-	
-	image_filename = argv[2];
-	
-	if (argc < 4) {
-		printf("No image size specified\n");
-		return -1;
-	}
-	unconverted_size = strtod(argv[3], &unit);
+
 	if (*unit == 'G' || *unit == 'g') {
 		converted_size = (unsigned long) (unconverted_size * (1<<30) / 512);
 	} else if (*unit == 'M' || *unit == 'm') {
@@ -590,7 +639,7 @@ static int cmd_create(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	result = f_mkfs(0, 0, 0, (argc < 5 ? NULL : argv[4]) );
+	result = f_mkfs(0, 0, 0, volumelabel, fmt);
 	if (result != FR_OK) {
 		fat_perror("Formatting failed", result);
 		vol.close(&vol);
@@ -778,21 +827,44 @@ static int copy_dir(XCHAR *source_dirname, XCHAR *destination_dirname) {
 static int cmd_rebuild(int argc, char *argv[]) {
 	char *source_filename;
 	char *destination_filename;
+	char *volumelabel = NULL;
 	volume_container source_vol, destination_vol;
 	FATFS source_fatfs, destination_fatfs;
 	FRESULT result;
-	
-	if (argc >= 3) {
-		source_filename = argv[2];
-	} else {
-		printf("No source image filename supplied\n");
-		return -1;
+
+	BYTE fmt = 0;
+	int i;
+
+	int arg_num = 0;
+	for (i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "--fat12") == 0) {
+			fmt = FS_FAT12;
+		} else if (strcmp(argv[i], "--fat16") == 0) {
+			fmt = FS_FAT16;
+		} else if (strcmp(argv[i], "--fat32") == 0) {
+			fmt = FS_FAT32;
+		} else {
+			switch (arg_num) {
+				case 0:
+					source_filename = argv[i];
+					arg_num++;
+					break;
+				case 1:
+					destination_filename = argv[i];
+					arg_num++;
+					break;
+				case 2:
+					volumelabel = argv[i];
+					arg_num++;
+					break;
+				default:
+					arg_num++;
+			}
+		}
 	}
-	
-	if (argc >= 4) {
-		destination_filename = argv[3];
-	} else {
-		printf("No destination image filename supplied\n");
+
+	if (arg_num < 2 || arg_num > 3) {
+		printf("Usage: hdfmonkey rebuild [--fat12|--fat16|--fat32] <source-image-file> <destination-image-file> [volumelabel]\n");
 		return -1;
 	}
 	
@@ -821,7 +893,7 @@ static int cmd_rebuild(int argc, char *argv[]) {
 		return -1;
 	}
 	
-	result = f_mkfs(1, 0, 0, (argc < 5 ? NULL : argv[4]) );
+	result = f_mkfs(1, 0, 0, volumelabel, fmt);
 	if (result != FR_OK) {
 		fat_perror("Formatting failed", result);
 		source_vol.close(&source_vol);
@@ -848,12 +920,12 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey clone <oldimagefile> <newimagefile>\n");
 	} else if (strcmp(argv[2], "create") == 0) {
 		printf("create: Create a new FAT-formatted image file\n");
-		printf("usage: hdfmonkey create <imagefile> <size> [volumelabel]\n");
+		printf("usage: hdfmonkey create [--fat12|--fat16|--fat32] <imagefile> <size> [volumelabel]\n");
 		printf("Size is given in bytes (B), kilobytes (K), megabytes (M) or gigabytes (G) -\n");
 		printf("e.g. 64M, 1.5G\n");
 	} else if (strcmp(argv[2], "format") == 0) {
 		printf("format: Formats the entire disk image as a FAT filesystem\n");
-		printf("usage: hdfmonkey format <imagefile> [volumelabel]\n");
+		printf("usage: hdfmonkey format [--fat12|--fat16|--fat32] <imagefile> [volumelabel]\n");
 	} else if (strcmp(argv[2], "get") == 0) {
 		printf("get: Copy a file from the disk image to a local file\n");
 		printf("usage: hdfmonkey get <imagefile> <sourcefile> [destfile]\n");
@@ -873,7 +945,7 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey put <image-file> <source-files> <dest-file-or-dir>\n");
 	} else if (strcmp(argv[2], "rebuild") == 0) {
 		printf("rebuild: Copy contents of the source image file-by-file to a new disk image;\n\tensures that the resulting image is unfragmented.\n");
-		printf("usage: hdfmonkey rebuild <source-image-file> <destination-image-file>\n");
+		printf("usage: hdfmonkey rebuild [--fat12|--fat16|--fat32] <source-image-file> <destination-image-file> [volumelabel]\n");
 	} else if (strcmp(argv[2], "rm") == 0) {
 		printf("rm: Remove a file or directory\n");
 		printf("usage: hdfmonkey rm <imagefile> <filename>\n");

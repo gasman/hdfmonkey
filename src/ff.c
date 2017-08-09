@@ -2791,12 +2791,13 @@ FRESULT f_mkfs (
 	BYTE drv,			/* Logical drive number */
 	BYTE partition,		/* Partitioning rule 0:FDISK, 1:SFD */
 	WORD allocsize,		/* Allocation unit size [bytes] */
-	char *volume_label
+	char *volume_label,
+	BYTE fmt
 )
 {
 	static const DWORD sstbl[] = { 2048000, 1024000, 512000, 256000, 128000, 64000, 32000, 16000, 8000, 4000,   0 };
 	static const WORD cstbl[] =  {   32768,   16384,   8192,   4096,   2048, 16384,  8192,  4096, 2048, 1024, 512 };
-	BYTE fmt, m, *tbl;
+	BYTE m, *tbl;
 	DWORD b_part, b_fat, b_dir, b_data;		/* Area offset (LBA) */
 	DWORD n_part, n_rsv, n_fat, n_dir;		/* Area size */
 	DWORD n_clst, d, n;
@@ -2843,9 +2844,12 @@ FRESULT f_mkfs (
 
 	/* Pre-compute number of clusters and FAT type */
 	n_clst = n_part / allocsize;
-	fmt = FS_FAT12;
-	if (n_clst >= 0xFF5) fmt = FS_FAT16;
-	if (n_clst >= 0xFFF5) fmt = FS_FAT32;
+	if (fmt == 0) {
+		/* set format automatically based on number of clusters */
+		fmt = FS_FAT12;
+		if (n_clst >= 0xFF5) fmt = FS_FAT16;
+		if (n_clst >= 0xFFF5) fmt = FS_FAT32;
+	}
 
 	/* Determine offset and size of FAT structure */
 	switch (fmt) {
@@ -2876,9 +2880,9 @@ FRESULT f_mkfs (
 
 	/* Determine number of cluster and final check of validity of the FAT type */
 	n_clst = (n_part - n_rsv - n_fat * N_FATS - n_dir) / allocsize;
-	if (   (fmt == FS_FAT16 && n_clst < 0xFF5)
+	/* if (   (fmt == FS_FAT16 && n_clst < 0xFF5)
 		|| (fmt == FS_FAT32 && n_clst < 0xFFF5))
-		return FR_MKFS_ABORTED;
+		return FR_MKFS_ABORTED; */
 
 	/* Create partition table if needed */
 	if (!partition) {

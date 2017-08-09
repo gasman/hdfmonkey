@@ -23,8 +23,8 @@ INSTALLING
 ----------
 From a tarball (see ftp://ftp.untergrund.net/users/gasman/zx/hdfmonkey):
 
-    tar xzf hdfmonkey-0.3.tar.gz
-    cd hdfmonkey-0.3
+    tar xzf hdfmonkey-0.4.tar.gz
+    cd hdfmonkey-0.4
     ./configure
     make
     sudo make install

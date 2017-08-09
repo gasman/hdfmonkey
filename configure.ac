@@ -1,4 +1,4 @@
-AC_INIT([hdfmonkey], [0.3], [matt@west.co.tt])
+AC_INIT([hdfmonkey], [0.4], [matt@west.co.tt])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CANONICAL_HOST
 AC_PROG_CC

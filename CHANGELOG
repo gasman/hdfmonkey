@@ -1,0 +1,22 @@
+0.4
+---
+* 'create', 'format' and 'rebuild' commands now accept a switch --fat12 / --fat16 / --fat32 to override the automatically chosen format; use --fat16 to create a <64Mb disk that's compatible with ESXDOS
+* Fixed compilation warnings
+* Added Windows compatibility via MinGW
+
+0.3
+---
+* Greatly improved speed when copying large files
+* Added 'rebuild' command
+* Read-only media is now handled correctly
+
+0.2
+---
+* Fixed 'format' command to produce a filesystem recognised by ESXDOS and FATware
+* Added 'create' and 'clone' commands
+* 'put' command now supports copying multiple files / directories at once
+* 'format' / 'create' commands now allow specifying a volume label
+
+0.1
+---
+* Initial release

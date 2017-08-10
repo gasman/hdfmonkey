@@ -21,7 +21,7 @@ For further information on command formats, type 'hdfmonkey help'.
 
 INSTALLING
 ----------
-From a tarball (see ftp://ftp.untergrund.net/users/gasman/zx/hdfmonkey):
+From a tarball (see http://files.zxdemo.org/gasman/speccy/hdfmonkey/):
 
     tar xzf hdfmonkey-0.4.tar.gz
     cd hdfmonkey-0.4

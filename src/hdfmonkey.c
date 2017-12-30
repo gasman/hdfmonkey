@@ -682,6 +682,48 @@ static int cmd_mkdir(int argc, char *argv[]) {
 	return 0;
 }
 
+static int cmd_move(int argc, char *argv[]) {
+	char *image_filename;
+	char *source_path;
+	char *dest_path;
+	volume_container vol;
+	FATFS fatfs;
+	FRESULT result;
+
+	if (argc < 3) {
+		printf("No image filename supplied\n");
+		return -1;
+	}
+	image_filename = argv[2];
+
+	if (argc < 4) {
+		printf("No source path supplied\n");
+		return -1;
+	}
+	source_path = argv[3];
+
+	if (argc < 5) {
+		printf("No dest path supplied\n");
+		return -1;
+	}
+	dest_path = argv[4];
+
+	if (open_image(image_filename, &vol, &fatfs, 1) == -1) {
+		return -1;
+	}
+
+	result = f_rename(source_path,dest_path);
+	if (result != FR_OK) {
+		if (result == FR_NO_FILE) {
+			result = FR_NO_PATH;
+		}
+		fat_perror("Move (rename) failed", result);
+		return -1;
+	}
+
+	return 0;
+}
+
 static int cmd_rm(int argc, char *argv[]) {
 	char *image_filename;
 	char *filename;
@@ -914,7 +956,7 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("usage: hdfmonkey <command> [args]\n\n");
 		printf("Type 'hdfmonkey help <command>' for help on a specific command.\n");
 		printf("Available commands:\n");
-		printf("\tclone\n\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tput\n\trebuild\n\trm\n");
+		printf("\tclone\n\tcreate\n\tformat\n\tget\n\thelp\n\tls\n\tmkdir\n\tmove\n\tput\n\trebuild\n\trm\n");
 	} else if (strcmp(argv[2], "clone") == 0) {
 		printf("clone: Make a new image file from a disk or image, possibly in a different container format\n");
 		printf("usage: hdfmonkey clone <oldimagefile> <newimagefile>\n");
@@ -940,6 +982,9 @@ static int cmd_help(int argc, char *argv[]) {
 	} else if (strcmp(argv[2], "mkdir") == 0) {
 		printf("mkdir: Create a directory\n");
 		printf("usage: hdfmonkey mkdir <imagefile> <dirname>\n");
+	} else if (strcmp(argv[2], "move") == 0) {
+		printf("rename: Move (rename) files and directories\n");
+		printf("usage: hdfmonkey move <imagefile> <source> <dest>\n");
 	} else if (strcmp(argv[2], "put") == 0) {
 		printf("put: Copy local files to the disk image\n");
 		printf("usage: hdfmonkey put <image-file> <source-files> <dest-file-or-dir>\n");
@@ -973,6 +1018,8 @@ int main(int argc, char *argv[]) {
 		return cmd_ls(argc, argv);
 	} else if (strcmp(argv[1], "mkdir") == 0) {
 		return cmd_mkdir(argc, argv);
+	} else if (strcmp(argv[1], "move") == 0) {
+		return cmd_move(argc, argv);
 	} else if (strcmp(argv[1], "put") == 0) {
 		return cmd_put(argc, argv);
 	} else if (strcmp(argv[1], "rebuild") == 0) {

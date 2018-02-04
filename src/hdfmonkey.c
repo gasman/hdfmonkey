@@ -983,7 +983,7 @@ static int cmd_help(int argc, char *argv[]) {
 		printf("mkdir: Create a directory\n");
 		printf("usage: hdfmonkey mkdir <imagefile> <dirname>\n");
 	} else if (strcmp(argv[2], "move") == 0) {
-		printf("rename: Move (rename) files and directories\n");
+		printf("move: Move (rename) files and directories\n");
 		printf("usage: hdfmonkey move <imagefile> <source> <dest>\n");
 	} else if (strcmp(argv[2], "put") == 0) {
 		printf("put: Copy local files to the disk image\n");

@@ -1,3 +1,7 @@
+0.4.1
+-----
+* Added minimal files to build Debian package.
+
 0.4
 ---
 * 'create', 'format' and 'rebuild' commands now accept a switch --fat12 / --fat16 / --fat32 to override the automatically chosen format; use --fat16 to create a <64Mb disk that's compatible with ESXDOS

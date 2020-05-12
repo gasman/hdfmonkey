@@ -44,12 +44,12 @@ From git:
 From git into a Debian source package:
 
     git clone https://github.com/gasman/hdfmonkey.git
-    dpkg-source -b
+    dpkg-source -b hdfmonkey
 
 From git into Debian binary package:
 
-    git clone https://github.com/gasman/hdfmonkey.git
-    cd hdfmonkey
+    git clone https://github.com/gasman/hdfmonkey.git hdfmonkey-0.4.1
+    cd hdfmonkey-0.4.1
     fakeroot debian/rules binary
 
 TODO

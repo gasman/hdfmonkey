@@ -41,6 +41,12 @@ From git:
     make
     sudo make install
 
+From git into a Debian package:
+
+    git clone https://github.com/gasman/hdfmonkey.git
+    cd hdfmonkey
+    fakeroot debian/rules binary
+
 TODO
 ----
 Implement a FUSE / MacFUSE filesystem driver, so that the disk image can be

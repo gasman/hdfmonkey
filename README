@@ -41,7 +41,12 @@ From git:
     make
     sudo make install
 
-From git into a Debian package:
+From git into a Debian source package:
+
+    git clone https://github.com/gasman/hdfmonkey.git
+    dpkg-source -b
+
+From git into Debian binary package:
 
     git clone https://github.com/gasman/hdfmonkey.git
     cd hdfmonkey

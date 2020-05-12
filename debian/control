@@ -1,7 +1,7 @@
 Source: hdfmonkey
 Section: otherosfs
 Priority: optional
-Maintainer: winden <windenntw@gmail.com>
+Maintainer: Matt Westcott <matt@west.co.tt>
 Standards-Version: 4.0.0
 Build-Depends: autoconf, automake
 Rules-Requires-Root: no

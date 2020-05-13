@@ -1,0 +1,16 @@
+Source: hdfmonkey
+Section: otherosfs
+Priority: optional
+Maintainer: Matt Westcott <matt@west.co.tt>
+Standards-Version: 4.0.0
+Build-Depends: autoconf, automake
+Rules-Requires-Root: no
+Vcs-Git: https://github.com/gasman/hdfmonkey
+Vcs-browser: https://github.com/gasman/hdfmonkey
+Homepage: https://github.com/gasman/hdfmonkey
+
+Package: hdfmonkey
+Architecture: any
+Depends: debconf
+Description: A Swiss Army Knife for working with FAT partitions on Spectrum emulator HDF images.
+
